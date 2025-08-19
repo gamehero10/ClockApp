@@ -22,13 +22,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
   height: 100vh;
   margin: 0;
   background-color: var(--bg-color);
   font-family: Arial, sans-serif;
   color: var(--text-color);
   transition: background-color 0.3s, color 0.3s;
-  flex-direction: column;
 }
 
 .clock-container {
@@ -36,7 +36,7 @@ body {
 }
 
 button#theme-toggle {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   padding: 8px 16px;
   font-size: 16px;
   cursor: pointer;
@@ -44,6 +44,17 @@ button#theme-toggle {
   color: var(--bg-color);
   border: none;
   border-radius: 5px;
+}
+
+#timezone-select {
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  border: none;
+  cursor: pointer;
 }
 
 .analog-clock {
@@ -95,4 +106,4 @@ button#theme-toggle {
 .digital-clock {
   font-size: 2em;
   letter-spacing: 2px;
-} 
+}

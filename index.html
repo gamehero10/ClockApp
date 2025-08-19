@@ -3,12 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Clock App with Theme Toggle</title>
+  <title>Clock App with Time Zones & Theme Toggle</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="clock-container">
     <button id="theme-toggle">Toggle Theme</button>
+
+    <select id="timezone-select">
+      <option value="local">Local Time</option>
+      <option value="UTC">UTC</option>
+      <option value="America/New_York">New York (EST)</option>
+      <option value="Europe/London">London (GMT)</option>
+      <option value="Asia/Tokyo">Tokyo (JST)</option>
+      <option value="Australia/Sydney">Sydney (AEST)</option>
+    </select>
 
     <div class="analog-clock">
       <div class="hand hour" id="hour-hand"></div>
@@ -22,4 +31,4 @@
 
   <script src="script.js"></script>
 </body>
-</html> 
+</html>
