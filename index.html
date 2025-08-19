@@ -3,73 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Advanced Clock App</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Feature-Rich Clock App</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
-    <h1>Advanced Clock App</h1>
+    <h1>Feature-Rich Clock App</h1>
     <button id="theme-toggle">Switch to Light Mode</button>
   </header>
 
-  <section id="clock-section">
-    <div class="analog-clock">
-      <div id="hour-hand" class="hand hour"></div>
-      <div id="minute-hand" class="hand minute"></div>
-      <div id="second-hand" class="hand second"></div>
-      <div class="center-dot"></div>
-    </div>
-    <div id="digital-clock" class="digital"></div>
+  <!-- Timezone & Locale -->
+  <section class="settings">
+    <label for="timezone-select">Select Timezone:</label>
+    <select id="timezone-select">
+      <option value="local">Local Timezone</option>
+    </select>
 
-    <div class="selectors">
-      <label for="timezone-select">Timezone:</label>
-      <select id="timezone-select">
-        <option value="local">Local</option>
-        <option value="UTC">UTC</option>
-        <option value="America/New_York">New York</option>
-        <option value="Europe/London">London</option>
-        <option value="Asia/Tokyo">Tokyo</option>
-        <option value="Australia/Sydney">Sydney</option>
-      </select>
-
-      <label for="locale-select">Locale:</label>
-      <select id="locale-select">
-        <option value="browser">Browser Default</option>
-        <option value="en-US">English (US)</option>
-        <option value="fr-FR">French (FR)</option>
-        <option value="ja-JP">Japanese (JP)</option>
-      </select>
-    </div>
+    <label for="locale-select">Select Locale:</label>
+    <select id="locale-select">
+      <option value="browser">Browser Default</option>
+      <option value="en-US">English (US)</option>
+      <option value="en-GB">English (UK)</option>
+      <option value="fr-FR">French (France)</option>
+      <option value="de-DE">German (Germany)</option>
+      <option value="es-ES">Spanish (Spain)</option>
+      <option value="ja-JP">Japanese (Japan)</option>
+      <option value="zh-CN">Chinese (Simplified)</option>
+    </select>
   </section>
 
-  <section id="alarm-section">
+  <!-- Clock Display -->
+  <section class="clock-section">
+    <div class="analog-clock">
+      <div id="hour-hand" class="hand hour-hand"></div>
+      <div id="minute-hand" class="hand minute-hand"></div>
+      <div id="second-hand" class="hand second-hand"></div>
+      <div class="center-dot"></div>
+    </div>
+    <div id="digital-clock" class="digital-clock">00:00:00</div>
+  </section>
+
+  <!-- Alarm -->
+  <section class="alarm-section">
     <h2>Alarm</h2>
     <input type="time" id="alarm-time" />
     <button id="set-alarm">Set Alarm</button>
-    <p id="alarm-status">No alarm set.</p>
-    <audio id="alarm-audio" src="alarm.mp3" preload="auto"></audio>
+    <div id="alarm-status">No alarm set.</div>
+    <audio id="alarm-audio" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
   </section>
 
-  <section id="timer-section">
+  <!-- Timer -->
+  <section class="timer-section">
     <h2>Timer</h2>
-    <input type="number" id="timer-minutes" placeholder="Minutes" min="0" />
-    <input type="number" id="timer-seconds" placeholder="Seconds" min="0" max="59" />
+    <input type="number" id="timer-minutes" min="0" placeholder="Minutes" />
+    <input type="number" id="timer-seconds" min="0" max="59" placeholder="Seconds" />
     <button id="start-timer">Start</button>
     <button id="stop-timer">Stop</button>
     <button id="reset-timer">Reset</button>
-    <p id="timer-display">00:00</p>
+    <div id="timer-display">00:00</div>
   </section>
 
-  <section id="stopwatch-section">
+  <!-- Stopwatch -->
+  <section class="stopwatch-section">
     <h2>Stopwatch</h2>
+    <div id="stopwatch-display">00:00:00</div>
     <button id="start-stopwatch">Start</button>
     <button id="stop-stopwatch">Stop</button>
     <button id="reset-stopwatch">Reset</button>
     <button id="lap-stopwatch">Lap</button>
-    <p id="stopwatch-display">00:00:00</p>
     <ul id="lap-list"></ul>
   </section>
 
-  <script src="index.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

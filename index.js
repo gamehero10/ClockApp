@@ -28,17 +28,41 @@ const lapList = document.getElementById("lap-list");
 
 // === Settings & Localization ===
 let currentTimeZone = localStorage.getItem("timezone") || "local";
-timezoneSelect.value = currentTimeZone;
-
 let currentLocale = localStorage.getItem("locale") || "browser";
+
+// === Populate Timezones from WorldTimeAPI ===
+async function populateTimezones() {
+  try {
+    const response = await fetch("https://worldtimeapi.org/api/timezone");
+    if (!response.ok) throw new Error("Failed to fetch timezones");
+    const timezones = await response.json();
+
+    // Clear existing options except Local
+    timezoneSelect.innerHTML = `<option value="local">Local Timezone</option>`;
+
+    timezones.forEach((tz) => {
+      const option = document.createElement("option");
+      option.value = tz;
+      option.textContent = tz.replace(/_/g, " ");
+      timezoneSelect.appendChild(option);
+    });
+
+    timezoneSelect.value = currentTimeZone;
+  } catch (err) {
+    console.error("Error loading timezones:", err);
+  }
+}
+
+// Initialize timezone list on page load
+populateTimezones();
+
+// Set locale select dropdown (assumes options exist in HTML)
 localeSelect.value = currentLocale;
 
 // === Theme Toggle ===
 function applyTheme(theme) {
   try {
-    if (theme !== "light" && theme !== "dark") {
-      theme = "dark";
-    }
+    if (theme !== "light" && theme !== "dark") theme = "dark";
     document.body.classList.toggle("light-theme", theme === "light");
     localStorage.setItem("theme", theme);
     toggleButton.textContent = theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode";
@@ -55,23 +79,21 @@ toggleButton.addEventListener("click", () => {
   applyTheme(newTheme);
 });
 
-// === Timezone Change ===
+// === Timezone & Locale Change Handlers ===
 timezoneSelect.addEventListener("change", (e) => {
   currentTimeZone = e.target.value;
   localStorage.setItem("timezone", currentTimeZone);
+  cachedApiTime = null;
 });
 
-// === Locale Change ===
 localeSelect.addEventListener("change", (e) => {
   currentLocale = e.target.value;
   localStorage.setItem("locale", currentLocale);
 });
 
-// Helper to get locale
-const getLocale = () =>
-  currentLocale === "browser" ? navigator.language || "en-US" : currentLocale;
+// === Helpers ===
+const getLocale = () => (currentLocale === "browser" ? navigator.language || "en-US" : currentLocale);
 
-// Helper to format time for digital clock (localized)
 function formatTimeComponent(date) {
   return date.toLocaleTimeString(getLocale(), {
     hour: "2-digit",
@@ -80,37 +102,81 @@ function formatTimeComponent(date) {
   });
 }
 
+function pad(num) {
+  return num.toString().padStart(2, "0");
+}
+
 // === Clock + Alarm ===
+// API cache
+let cachedApiTime = null;
+let lastApiFetch = 0;
+
+async function fetchTimeFromAPI(timezone) {
+  try {
+    if (timezone === "local") return null;
+    const response = await fetch(`https://worldtimeapi.org/api/timezone/${timezone}`);
+    if (!response.ok) throw new Error("Network response not OK");
+    const data = await response.json();
+    return new Date(data.datetime);
+  } catch (err) {
+    console.warn("WorldTimeAPI fetch failed, fallback to local.", err);
+    return null;
+  }
+}
+
+async function getCurrentTime() {
+  const now = new Date();
+
+  if (
+    currentTimeZone !== "local" &&
+    (!cachedApiTime || Date.now() - lastApiFetch > 1000)
+  ) {
+    const apiTime = await fetchTimeFromAPI(currentTimeZone);
+    if (apiTime) {
+      cachedApiTime = apiTime;
+      lastApiFetch = Date.now();
+      return new Date(cachedApiTime.getTime() + (Date.now() - lastApiFetch));
+    }
+  }
+
+  if (currentTimeZone === "local" || !cachedApiTime) {
+    try {
+      const options = {
+        timeZone: currentTimeZone,
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      };
+      const parts = new Intl.DateTimeFormat("en-US", options)
+        .formatToParts(now)
+        .reduce((acc, part) => {
+          acc[part.type] = part.value;
+          return acc;
+        }, {});
+      const h = parseInt(parts.hour, 10);
+      const m = parseInt(parts.minute, 10);
+      const s = parseInt(parts.second, 10);
+      let dateCopy = new Date(now);
+      dateCopy.setHours(h, m, s, 0);
+      return dateCopy;
+    } catch {
+      return now;
+    }
+  }
+
+  return cachedApiTime;
+}
+
 let alarmTime = localStorage.getItem("alarmTime") || null;
 if (alarmTime) alarmStatus.textContent = `Alarm set for ${alarmTime}`;
 
-function updateClock() {
+async function updateClock() {
   try {
-    let now = new Date();
+    let now = await getCurrentTime();
 
-    if (currentTimeZone !== "local") {
-      try {
-        const options = {
-          timeZone: currentTimeZone,
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        };
-        const [h, m, s] = new Intl.DateTimeFormat("en-US", options)
-          .format(now)
-          .split(":")
-          .map(Number);
-        now.setHours(h, m, s);
-      } catch {
-        console.warn("Invalid timezone—falling back to local.");
-      }
-    }
-
-    // Digital clock localized
     digitalClock.textContent = formatTimeComponent(now);
 
-    // Analog clock (rotation)
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
@@ -119,7 +185,6 @@ function updateClock() {
     minuteHand.style.transform = `translate(-50%) rotate(${minutes * 6}deg)`;
     secondHand.style.transform = `translate(-50%) rotate(${seconds * 6}deg)`;
 
-    // Check Alarm
     if (alarmTime === `${pad(hours)}:${pad(minutes)}` && seconds === 0) {
       triggerAlarm();
     }
@@ -154,10 +219,6 @@ function triggerAlarm() {
   } catch (err) {
     console.error("Error triggering alarm:", err);
   }
-}
-
-function pad(num) {
-  return num.toString().padStart(2, "0");
 }
 
 // === Timer ===
@@ -196,22 +257,24 @@ startTimerBtn.addEventListener("click", () => {
     timerInterval = setInterval(() => {
       if (timerTotalSeconds > 0) {
         timerTotalSeconds--;
+        updateTimerDisplay();
       } else {
         clearInterval(timerInterval);
         timerRunning = false;
+        alert("⏰ Timer finished!");
         alarmSound.play().catch(() => {});
-        alert("⏳ Timer finished!");
       }
-      updateTimerDisplay();
     }, 1000);
   } catch (err) {
-    console.error("Timer start failed:", err);
+    console.error("Timer start error:", err);
   }
 });
 
 stopTimerBtn.addEventListener("click", () => {
-  clearInterval(timerInterval);
-  timerRunning = false;
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+  }
 });
 
 resetTimerBtn.addEventListener("click", () => {
@@ -219,49 +282,54 @@ resetTimerBtn.addEventListener("click", () => {
   timerRunning = false;
   timerTotalSeconds = 0;
   updateTimerDisplay();
-  timerMinutesInput.value = "";
-  timerSecondsInput.value = "";
 });
 
+// Initialize timer display
+updateTimerDisplay();
+
 // === Stopwatch ===
-let stopwatchStartTime = 0;
+let stopwatchStart = null;
 let stopwatchElapsed = 0;
 let stopwatchRunning = false;
-let stopwatchInterval = null;
+
+function formatStopwatchTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+}
 
 function displayStopwatchTime() {
-  let totalMilliseconds = stopwatchElapsed;
-  if (stopwatchRunning) {
-    totalMilliseconds += Date.now() - stopwatchStartTime;
+  let displayTime = stopwatchElapsed;
+  if (stopwatchRunning && stopwatchStart) {
+    displayTime += Date.now() - stopwatchStart;
   }
-
-  const totalSeconds = Math.floor(totalMilliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  stopwatchDisplay.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  stopwatchDisplay.textContent = formatStopwatchTime(displayTime);
 }
+
+let stopwatchInterval = null;
 
 startStopwatchBtn.addEventListener("click", () => {
   if (stopwatchRunning) return;
+  stopwatchStart = Date.now();
   stopwatchRunning = true;
-  stopwatchStartTime = Date.now();
   stopwatchInterval = setInterval(displayStopwatchTime, 250);
 });
 
 stopStopwatchBtn.addEventListener("click", () => {
   if (!stopwatchRunning) return;
+  stopwatchElapsed += Date.now() - stopwatchStart;
+  stopwatchStart = null;
   stopwatchRunning = false;
-  stopwatchElapsed += Date.now() - stopwatchStartTime;
   clearInterval(stopwatchInterval);
   displayStopwatchTime();
 });
 
 resetStopwatchBtn.addEventListener("click", () => {
-  stopwatchRunning = false;
   stopwatchElapsed = 0;
-  stopwatchStartTime = 0;
+  stopwatchStart = null;
+  stopwatchRunning = false;
   clearInterval(stopwatchInterval);
   displayStopwatchTime();
   lapList.innerHTML = "";
@@ -269,21 +337,11 @@ resetStopwatchBtn.addEventListener("click", () => {
 
 lapStopwatchBtn.addEventListener("click", () => {
   if (!stopwatchRunning) return;
-
-  let totalMilliseconds = stopwatchElapsed + (Date.now() - stopwatchStartTime);
-  const totalSeconds = Math.floor(totalMilliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const lapTime = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-
-  const li = document.createElement("li");
-  li.textContent = lapTime;
-  lapList.appendChild(li);
+  let lapTime = stopwatchElapsed + (Date.now() - stopwatchStart);
+  const lapItem = document.createElement("li");
+  lapItem.textContent = formatStopwatchTime(lapTime);
+  lapList.appendChild(lapItem);
 });
 
-// Initialize timer display
-updateTimerDisplay();
-// Initialize stopwatch display
-displayStopwatchTime();
+// Update clock display immediately on page load
+updateClock();
