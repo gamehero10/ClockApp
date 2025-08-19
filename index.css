@@ -8,7 +8,7 @@
   --center-color: #fff;
 }
 
-body.light-theme {
+body.light-theme { 
   --bg-color: #f0f0f0;
   --text-color: #000000;
   --clock-border: #00000033;

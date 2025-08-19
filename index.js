@@ -33,10 +33,20 @@ if (alarmTime) alarmStatus.textContent = `Alarm set for ${alarmTime}`;
 
 // === Theme Toggle ===
 function applyTheme(theme) {
-  document.body.classList.toggle("light-theme", theme === "light");
-  localStorage.setItem("theme", theme);
-  toggleButton.textContent = theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode";
+  try {
+    if (theme !== "light" && theme !== "dark") {
+      console.warn("Invalid theme detected, defaulting to dark.");
+      theme = "dark";
+    }
+
+    document.body.classList.toggle("light-theme", theme === "light");
+    localStorage.setItem("theme", theme);
+    toggleButton.textContent = theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode";
+  } catch (err) {
+    console.error("Error applying theme:", err);
+  }
 }
+
 const savedTheme = localStorage.getItem("theme") || "dark";
 applyTheme(savedTheme);
 
@@ -53,54 +63,70 @@ timezoneSelect.addEventListener("change", (e) => {
 
 // === Clock + Alarm ===
 function updateClock() {
-  let now = new Date();
-  if (currentTimeZone !== "local") {
-    const options = {
-      timeZone: currentTimeZone,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    };
-    const [h, m, s] = new Intl.DateTimeFormat('en-US', options).format(now).split(':').map(Number);
-    now.setHours(h, m, s);
+  try {
+    let now = new Date();
+
+    if (currentTimeZone !== "local") {
+      try {
+        const options = {
+          timeZone: currentTimeZone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        };
+        const [h, m, s] = new Intl.DateTimeFormat('en-US', options).format(now).split(':').map(Number);
+        now.setHours(h, m, s);
+      } catch (tzErr) {
+        console.warn("Invalid timezone selected. Falling back to local.");
+      }
+    }
+
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    digitalClock.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+    hourHand.style.transform = `translate(-50%) rotate(${(hours % 12) * 30 + minutes * 0.5}deg)`;
+    minuteHand.style.transform = `translate(-50%) rotate(${minutes * 6}deg)`;
+    secondHand.style.transform = `translate(-50%) rotate(${seconds * 6}deg)`;
+
+    // Check Alarm
+    if (alarmTime === `${pad(hours)}:${pad(minutes)}` && seconds === 0) {
+      triggerAlarm();
+    }
+
+    updateTimerDisplay();
+    displayStopwatchTime();
+  } catch (err) {
+    console.error("Clock update failed:", err);
   }
-
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-
-  digitalClock.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-
-  hourHand.style.transform = `translate(-50%) rotate(${(hours % 12) * 30 + minutes * 0.5}deg)`;
-  minuteHand.style.transform = `translate(-50%) rotate(${minutes * 6}deg)`;
-  secondHand.style.transform = `translate(-50%) rotate(${seconds * 6}deg)`;
-
-  // Check Alarm
-  if (alarmTime === `${pad(hours)}:${pad(minutes)}` && seconds === 0) {
-    triggerAlarm();
-  }
-
-  updateTimerDisplay();
-  displayStopwatchTime(); // display stopwatch as time ticks
 }
 setInterval(updateClock, 1000);
 
 // === Alarm ===
 setAlarmBtn.addEventListener("click", () => {
   const time = alarmInput.value;
-  if (!time) return alert("Please select a time for the alarm.");
+  if (!time || !/^\d{2}:\d{2}$/.test(time)) {
+    alert("❌ Please enter a valid time (HH:MM).");
+    return;
+  }
   alarmTime = time;
   localStorage.setItem("alarmTime", alarmTime);
   alarmStatus.textContent = `Alarm set for ${alarmTime}`;
 });
 
 function triggerAlarm() {
-  alarmSound.play();
-  alert("⏰ Alarm Time!");
-  alarmTime = null;
-  localStorage.removeItem("alarmTime");
-  alarmStatus.textContent = "No alarm set.";
+  try {
+    alarmSound.play().catch(err => console.warn("Unable to play alarm sound:", err));
+    alert("⏰ Alarm Time!");
+    alarmTime = null;
+    localStorage.removeItem("alarmTime");
+    alarmStatus.textContent = "No alarm set.";
+  } catch (err) {
+    console.error("Error triggering alarm:", err);
+  }
 }
 
 function pad(n) {
@@ -119,30 +145,41 @@ function updateTimerDisplay() {
 }
 
 startTimerBtn.addEventListener("click", () => {
-  if (timerRunning) return;
+  try {
+    if (timerRunning) return;
 
-  const mins = parseInt(timerMinutesInput.value) || 0;
-  const secs = parseInt(timerSecondsInput.value) || 0;
-  if (mins === 0 && secs === 0 && timerTotalSeconds === 0) {
-    return alert("Enter time for the timer.");
-  }
+    const mins = parseInt(timerMinutesInput.value) || 0;
+    const secs = parseInt(timerSecondsInput.value) || 0;
 
-  if (timerTotalSeconds === 0) {
-    timerTotalSeconds = mins * 60 + secs;
-  }
-
-  timerRunning = true;
-  timerInterval = setInterval(() => {
-    if (timerTotalSeconds > 0) {
-      timerTotalSeconds--;
-    } else {
-      clearInterval(timerInterval);
-      timerRunning = false;
-      alarmSound.play();
-      alert("⏳ Timer finished!");
+    if (isNaN(mins) || isNaN(secs) || mins < 0 || secs < 0 || secs >= 60) {
+      alert("❌ Please enter valid positive numbers for minutes (≥ 0) and seconds (0-59).");
+      return;
     }
-    updateTimerDisplay();
-  }, 1000);
+
+    if (mins === 0 && secs === 0 && timerTotalSeconds === 0) {
+      alert("⏳ Enter time for the timer.");
+      return;
+    }
+
+    if (timerTotalSeconds === 0) {
+      timerTotalSeconds = mins * 60 + secs;
+    }
+
+    timerRunning = true;
+    timerInterval = setInterval(() => {
+      if (timerTotalSeconds > 0) {
+        timerTotalSeconds--;
+      } else {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        alarmSound.play();
+        alert("⏳ Timer finished!");
+      }
+      updateTimerDisplay();
+    }, 1000);
+  } catch (err) {
+    console.error("Timer error:", err);
+  }
 });
 
 stopTimerBtn.addEventListener("click", () => {
@@ -159,7 +196,7 @@ resetTimerBtn.addEventListener("click", () => {
   timerSecondsInput.value = "";
 });
 
-// === Stopwatch (Optimized) ===
+// === Stopwatch (Optimized + Error Handled) ===
 let elapsedSeconds = 0;
 let stopwatchInterval = null;
 let isStopwatchRunning = false;
@@ -167,7 +204,7 @@ let isStopwatchRunning = false;
 const formatTime = (totalSeconds) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  const milliseconds = 0; // Can be extended
+  const milliseconds = 0;
   return `${pad(minutes)}:${pad(seconds)}:${pad(milliseconds)}`;
 };
 
@@ -198,9 +235,13 @@ const resetStopwatch = () => {
 };
 
 const recordLap = () => {
-  const lapItem = document.createElement("li");
-  lapItem.textContent = formatTime(elapsedSeconds);
-  lapList.appendChild(lapItem);
+  try {
+    const lapItem = document.createElement("li");
+    lapItem.textContent = formatTime(elapsedSeconds);
+    lapList.appendChild(lapItem);
+  } catch (err) {
+    console.error("Error recording lap:", err);
+  }
 };
 
 // Stopwatch button events
@@ -208,3 +249,4 @@ startStopwatchBtn.addEventListener("click", startStopwatch);
 stopStopwatchBtn.addEventListener("click", stopStopwatch);
 resetStopwatchBtn.addEventListener("click", resetStopwatch);
 lapStopwatchBtn.addEventListener("click", recordLap);
+ 
