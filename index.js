@@ -1,9 +1,10 @@
-// === Basic Setup ===
+// === DOM Elements ===
 const digitalClock = document.getElementById("digital-clock");
 const hourHand = document.getElementById("hour-hand");
 const minuteHand = document.getElementById("minute-hand");
 const secondHand = document.getElementById("second-hand");
 const timezoneSelect = document.getElementById("timezone-select");
+const localeSelect = document.getElementById("locale-select");
 const toggleButton = document.getElementById("theme-toggle");
 
 const alarmInput = document.getElementById("alarm-time");
@@ -25,20 +26,19 @@ const resetStopwatchBtn = document.getElementById("reset-stopwatch");
 const lapStopwatchBtn = document.getElementById("lap-stopwatch");
 const lapList = document.getElementById("lap-list");
 
+// === Settings & Localization ===
 let currentTimeZone = localStorage.getItem("timezone") || "local";
 timezoneSelect.value = currentTimeZone;
 
-let alarmTime = localStorage.getItem("alarmTime") || null;
-if (alarmTime) alarmStatus.textContent = `Alarm set for ${alarmTime}`;
+let currentLocale = localStorage.getItem("locale") || "browser";
+localeSelect.value = currentLocale;
 
 // === Theme Toggle ===
 function applyTheme(theme) {
   try {
     if (theme !== "light" && theme !== "dark") {
-      console.warn("Invalid theme detected, defaulting to dark.");
       theme = "dark";
     }
-
     document.body.classList.toggle("light-theme", theme === "light");
     localStorage.setItem("theme", theme);
     toggleButton.textContent = theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode";
@@ -61,7 +61,29 @@ timezoneSelect.addEventListener("change", (e) => {
   localStorage.setItem("timezone", currentTimeZone);
 });
 
+// === Locale Change ===
+localeSelect.addEventListener("change", (e) => {
+  currentLocale = e.target.value;
+  localStorage.setItem("locale", currentLocale);
+});
+
+// Helper to get locale
+const getLocale = () =>
+  currentLocale === "browser" ? navigator.language || "en-US" : currentLocale;
+
+// Helper to format time for digital clock (localized)
+function formatTimeComponent(date) {
+  return date.toLocaleTimeString(getLocale(), {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 // === Clock + Alarm ===
+let alarmTime = localStorage.getItem("alarmTime") || null;
+if (alarmTime) alarmStatus.textContent = `Alarm set for ${alarmTime}`;
+
 function updateClock() {
   try {
     let now = new Date();
@@ -70,23 +92,28 @@ function updateClock() {
       try {
         const options = {
           timeZone: currentTimeZone,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
         };
-        const [h, m, s] = new Intl.DateTimeFormat('en-US', options).format(now).split(':').map(Number);
+        const [h, m, s] = new Intl.DateTimeFormat("en-US", options)
+          .format(now)
+          .split(":")
+          .map(Number);
         now.setHours(h, m, s);
-      } catch (tzErr) {
-        console.warn("Invalid timezone selected. Falling back to local.");
+      } catch {
+        console.warn("Invalid timezone—falling back to local.");
       }
     }
 
+    // Digital clock localized
+    digitalClock.textContent = formatTimeComponent(now);
+
+    // Analog clock (rotation)
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
-
-    digitalClock.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
     hourHand.style.transform = `translate(-50%) rotate(${(hours % 12) * 30 + minutes * 0.5}deg)`;
     minuteHand.style.transform = `translate(-50%) rotate(${minutes * 6}deg)`;
@@ -119,7 +146,7 @@ setAlarmBtn.addEventListener("click", () => {
 
 function triggerAlarm() {
   try {
-    alarmSound.play().catch(err => console.warn("Unable to play alarm sound:", err));
+    alarmSound.play().catch((err) => console.warn("Unable to play alarm sound:", err));
     alert("⏰ Alarm Time!");
     alarmTime = null;
     localStorage.removeItem("alarmTime");
@@ -129,8 +156,8 @@ function triggerAlarm() {
   }
 }
 
-function pad(n) {
-  return n.toString().padStart(2, "0");
+function pad(num) {
+  return num.toString().padStart(2, "0");
 }
 
 // === Timer ===
@@ -172,13 +199,13 @@ startTimerBtn.addEventListener("click", () => {
       } else {
         clearInterval(timerInterval);
         timerRunning = false;
-        alarmSound.play();
+        alarmSound.play().catch(() => {});
         alert("⏳ Timer finished!");
       }
       updateTimerDisplay();
     }, 1000);
   } catch (err) {
-    console.error("Timer error:", err);
+    console.error("Timer start failed:", err);
   }
 });
 
@@ -189,64 +216,74 @@ stopTimerBtn.addEventListener("click", () => {
 
 resetTimerBtn.addEventListener("click", () => {
   clearInterval(timerInterval);
-  timerTotalSeconds = 0;
   timerRunning = false;
+  timerTotalSeconds = 0;
   updateTimerDisplay();
   timerMinutesInput.value = "";
   timerSecondsInput.value = "";
 });
 
-// === Stopwatch (Optimized + Error Handled) ===
-let elapsedSeconds = 0;
+// === Stopwatch ===
+let stopwatchStartTime = 0;
+let stopwatchElapsed = 0;
+let stopwatchRunning = false;
 let stopwatchInterval = null;
-let isStopwatchRunning = false;
 
-const formatTime = (totalSeconds) => {
-  const minutes = Math.floor(totalSeconds / 60);
+function displayStopwatchTime() {
+  let totalMilliseconds = stopwatchElapsed;
+  if (stopwatchRunning) {
+    totalMilliseconds += Date.now() - stopwatchStartTime;
+  }
+
+  const totalSeconds = Math.floor(totalMilliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const milliseconds = 0;
-  return `${pad(minutes)}:${pad(seconds)}:${pad(milliseconds)}`;
-};
 
-const displayStopwatchTime = () => {
-  stopwatchDisplay.textContent = formatTime(elapsedSeconds);
-};
+  stopwatchDisplay.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
 
-const startStopwatch = () => {
-  if (isStopwatchRunning) return;
-  isStopwatchRunning = true;
+startStopwatchBtn.addEventListener("click", () => {
+  if (stopwatchRunning) return;
+  stopwatchRunning = true;
+  stopwatchStartTime = Date.now();
+  stopwatchInterval = setInterval(displayStopwatchTime, 250);
+});
 
-  stopwatchInterval = setInterval(() => {
-    elapsedSeconds++;
-    displayStopwatchTime();
-  }, 1000);
-};
-
-const stopStopwatch = () => {
+stopStopwatchBtn.addEventListener("click", () => {
+  if (!stopwatchRunning) return;
+  stopwatchRunning = false;
+  stopwatchElapsed += Date.now() - stopwatchStartTime;
   clearInterval(stopwatchInterval);
-  isStopwatchRunning = false;
-};
+  displayStopwatchTime();
+});
 
-const resetStopwatch = () => {
-  stopStopwatch();
-  elapsedSeconds = 0;
+resetStopwatchBtn.addEventListener("click", () => {
+  stopwatchRunning = false;
+  stopwatchElapsed = 0;
+  stopwatchStartTime = 0;
+  clearInterval(stopwatchInterval);
   displayStopwatchTime();
   lapList.innerHTML = "";
-};
+});
 
-const recordLap = () => {
-  try {
-    const lapItem = document.createElement("li");
-    lapItem.textContent = formatTime(elapsedSeconds);
-    lapList.appendChild(lapItem);
-  } catch (err) {
-    console.error("Error recording lap:", err);
-  }
-};
+lapStopwatchBtn.addEventListener("click", () => {
+  if (!stopwatchRunning) return;
 
-// Stopwatch button events
-startStopwatchBtn.addEventListener("click", startStopwatch);
-stopStopwatchBtn.addEventListener("click", stopStopwatch);
-resetStopwatchBtn.addEventListener("click", resetStopwatch);
-lapStopwatchBtn.addEventListener("click", recordLap);
- 
+  let totalMilliseconds = stopwatchElapsed + (Date.now() - stopwatchStartTime);
+  const totalSeconds = Math.floor(totalMilliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const lapTime = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+  const li = document.createElement("li");
+  li.textContent = lapTime;
+  lapList.appendChild(li);
+});
+
+// Initialize timer display
+updateTimerDisplay();
+// Initialize stopwatch display
+displayStopwatchTime();
