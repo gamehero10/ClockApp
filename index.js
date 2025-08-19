@@ -14,8 +14,8 @@ function updateClock() {
   const minuteHand = document.getElementById("minute-hand");
   const secondHand = document.getElementById("second-hand");
 
-  const hourDeg = (hours % 12) * 30 + minutes * 0.5; // 360/12 = 30 deg per hour
-  const minuteDeg = minutes * 6; // 360/60 = 6 deg per min
+  const hourDeg = (hours % 12) * 30 + minutes * 0.5;
+  const minuteDeg = minutes * 6;
   const secondDeg = seconds * 6;
 
   hourHand.style.transform = `translate(-50%) rotate(${hourDeg}deg)`;
@@ -28,4 +28,23 @@ function pad(num) {
 }
 
 setInterval(updateClock, 1000);
-updateClock(); // initial call 
+updateClock(); // initial call
+
+// === Theme Toggle ===
+const toggleButton = document.getElementById("theme-toggle");
+
+function applyTheme(theme) {
+  document.body.classList.toggle("light-theme", theme === "light");
+  localStorage.setItem("theme", theme);
+  toggleButton.textContent = theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode";
+}
+
+// Load saved theme
+const savedTheme = localStorage.getItem("theme") || "dark";
+applyTheme(savedTheme);
+
+// Toggle theme on button click
+toggleButton.addEventListener("click", () => {
+  const newTheme = document.body.classList.contains("light-theme") ? "dark" : "light";
+  applyTheme(newTheme);
+}); 

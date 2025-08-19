@@ -2,21 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clock App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clock App with Theme Toggle</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="clock-container">
+    <button id="theme-toggle">Toggle Theme</button>
+
     <div class="analog-clock">
       <div class="hand hour" id="hour-hand"></div>
       <div class="hand minute" id="minute-hand"></div>
       <div class="hand second" id="second-hand"></div>
       <div class="center-point"></div>
     </div>
+
     <div class="digital-clock" id="digital-clock">00:00:00</div>
   </div>
 
   <script src="script.js"></script>
 </body>
-</html>
+</html> 
