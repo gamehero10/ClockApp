@@ -23,19 +23,21 @@ body {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  height: 100vh;
+  height: auto;
   margin: 0;
   background-color: var(--bg-color);
   font-family: Arial, sans-serif;
   color: var(--text-color);
   transition: background-color 0.3s, color 0.3s;
+  padding: 20px;
 }
 
 .clock-container {
   text-align: center;
+  max-width: 600px;
 }
 
-button, select, input[type="time"] {
+button, select, input[type="time"], input[type="number"] {
   padding: 8px 12px;
   font-size: 16px;
   border-radius: 5px;
@@ -98,6 +100,18 @@ button, select, input[type="time"] {
   margin-bottom: 20px;
 }
 
-.alarm-setter {
-  margin-top: 10px;
+.alarm-setter, .timer-setter, .stopwatch {
+  margin-top: 15px;
 }
+
+#stopwatch-display {
+  font-size: 1.8em;
+  margin: 10px 0;
+}
+
+#lap-list {
+  list-style: none;
+  padding: 0;
+  max-height: 120px;
+  overflow-y: auto;
+} 

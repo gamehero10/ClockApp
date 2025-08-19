@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Clock App with Alarm</title>
+  <title>Full Clock App</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="clock-container">
-
+    
     <button id="theme-toggle">Toggle Theme</button>
 
     <select id="timezone-select">
@@ -20,6 +20,7 @@
       <option value="Australia/Sydney">Sydney (AEST)</option>
     </select>
 
+    <!-- Analog Clock -->
     <div class="analog-clock">
       <div class="hand hour" id="hour-hand"></div>
       <div class="hand minute" id="minute-hand"></div>
@@ -27,8 +28,10 @@
       <div class="center-point"></div>
     </div>
 
+    <!-- Digital Clock -->
     <div class="digital-clock" id="digital-clock">00:00:00</div>
 
+    <!-- Alarm -->
     <div class="alarm-setter">
       <label for="alarm-time">Set Alarm:</label>
       <input type="time" id="alarm-time">
@@ -36,11 +39,32 @@
       <p id="alarm-status">No alarm set.</p>
     </div>
 
-    <!-- Alarm sound -->
+    <!-- Timer -->
+    <div class="timer-setter">
+      <label>Timer (minutes & seconds):</label>
+      <input type="number" id="timer-minutes" min="0" placeholder="Minutes">
+      <input type="number" id="timer-seconds" min="0" max="59" placeholder="Seconds">
+      <button id="start-timer">Start</button>
+      <button id="stop-timer">Stop</button>
+      <button id="reset-timer">Reset</button>
+      <p id="timer-display">00:00</p>
+    </div>
+
+    <!-- Stopwatch -->
+    <div class="stopwatch">
+      <p id="stopwatch-display">00:00:00</p>
+      <button id="start-stopwatch">Start</button>
+      <button id="stop-stopwatch">Stop</button>
+      <button id="reset-stopwatch">Reset</button>
+      <button id="lap-stopwatch">Lap</button>
+      <ul id="lap-list"></ul>
+    </div>
+
+    <!-- Alarm Sound -->
     <audio id="alarm-audio" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
 
   </div>
 
-  <script src="script.js"></script>
+  <script src="index.js"></script>
 </body>
-</html>
+</html> 
