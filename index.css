@@ -15,7 +15,7 @@ body.light-theme {
   --hour-hand: #000;
   --minute-hand: #555;
   --second-hand: red;
-  --center-color: #000;
+  --center-color: #000; 
 }
 
 body {

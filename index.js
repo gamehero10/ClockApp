@@ -82,7 +82,7 @@ function updateClock() {
   }
 
   updateTimerDisplay();
-  updateStopwatchDisplay();
+  displayStopwatchTime(); // display stopwatch as time ticks
 }
 setInterval(updateClock, 1000);
 
@@ -159,46 +159,52 @@ resetTimerBtn.addEventListener("click", () => {
   timerSecondsInput.value = "";
 });
 
-// === Stopwatch ===
-let stopwatchSeconds = 0;
-let stopwatchRunning = false;
+// === Stopwatch (Optimized) ===
+let elapsedSeconds = 0;
 let stopwatchInterval = null;
+let isStopwatchRunning = false;
 
-function updateStopwatchDisplay() {
-  const mins = Math.floor(stopwatchSeconds / 60);
-  const secs = stopwatchSeconds % 60;
-  const millis = stopwatchSeconds % 1;
-  stopwatchDisplay.textContent = `${pad(mins)}:${pad(secs)}:${padMilliseconds(millis)}`;
-}
+const formatTime = (totalSeconds) => {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const milliseconds = 0; // Can be extended
+  return `${pad(minutes)}:${pad(seconds)}:${pad(milliseconds)}`;
+};
 
-function padMilliseconds(ms) {
-  return Math.floor(ms * 100).toString().padStart(2, '0');
-}
+const displayStopwatchTime = () => {
+  stopwatchDisplay.textContent = formatTime(elapsedSeconds);
+};
 
-startStopwatchBtn.addEventListener("click", () => {
-  if (stopwatchRunning) return;
-  stopwatchRunning = true;
+const startStopwatch = () => {
+  if (isStopwatchRunning) return;
+  isStopwatchRunning = true;
+
   stopwatchInterval = setInterval(() => {
-    stopwatchSeconds++;
-    updateStopwatchDisplay();
+    elapsedSeconds++;
+    displayStopwatchTime();
   }, 1000);
-});
+};
 
-stopStopwatchBtn.addEventListener("click", () => {
+const stopStopwatch = () => {
   clearInterval(stopwatchInterval);
-  stopwatchRunning = false;
-});
+  isStopwatchRunning = false;
+};
 
-resetStopwatchBtn.addEventListener("click", () => {
-  clearInterval(stopwatchInterval);
-  stopwatchSeconds = 0;
-  stopwatchRunning = false;
+const resetStopwatch = () => {
+  stopStopwatch();
+  elapsedSeconds = 0;
+  displayStopwatchTime();
   lapList.innerHTML = "";
-  updateStopwatchDisplay();
-});
+};
 
-lapStopwatchBtn.addEventListener("click", () => {
-  const li = document.createElement("li");
-  li.textContent = stopwatchDisplay.textContent;
-  lapList.appendChild(li);
-}); 
+const recordLap = () => {
+  const lapItem = document.createElement("li");
+  lapItem.textContent = formatTime(elapsedSeconds);
+  lapList.appendChild(lapItem);
+};
+
+// Stopwatch button events
+startStopwatchBtn.addEventListener("click", startStopwatch);
+stopStopwatchBtn.addEventListener("click", stopStopwatch);
+resetStopwatchBtn.addEventListener("click", resetStopwatch);
+lapStopwatchBtn.addEventListener("click", recordLap);
