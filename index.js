@@ -5,10 +5,18 @@ const secondHand = document.getElementById("second-hand");
 const timezoneSelect = document.getElementById("timezone-select");
 const toggleButton = document.getElementById("theme-toggle");
 
+const alarmInput = document.getElementById("alarm-time");
+const setAlarmBtn = document.getElementById("set-alarm");
+const alarmStatus = document.getElementById("alarm-status");
+const alarmSound = document.getElementById("alarm-audio");
+
 let currentTimeZone = localStorage.getItem("timezone") || "local";
 timezoneSelect.value = currentTimeZone;
 
-// Update clock function with timezone support
+let alarmTime = localStorage.getItem("alarmTime") || null;
+if (alarmTime) alarmStatus.textContent = `Alarm set for ${alarmTime}`;
+
+// === CLOCK FUNCTION ===
 function updateClock() {
   let now = new Date();
 
@@ -24,7 +32,6 @@ function updateClock() {
       .format(now)
       .split(':')
       .map(Number);
-
     now.setHours(h, m, s);
   }
 
@@ -32,10 +39,8 @@ function updateClock() {
   const minutes = now.getMinutes();
   const seconds = now.getSeconds();
 
-  // Update digital
   digitalClock.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
-  // Update analog
   const hourDeg = (hours % 12) * 30 + minutes * 0.5;
   const minuteDeg = minutes * 6;
   const secondDeg = seconds * 6;
@@ -43,6 +48,11 @@ function updateClock() {
   hourHand.style.transform = `translate(-50%) rotate(${hourDeg}deg)`;
   minuteHand.style.transform = `translate(-50%) rotate(${minuteDeg}deg)`;
   secondHand.style.transform = `translate(-50%) rotate(${secondDeg}deg)`;
+
+  // === ALARM CHECK ===
+  if (alarmTime === `${pad(hours)}:${pad(minutes)}` && seconds === 0) {
+    triggerAlarm();
+  }
 }
 
 function pad(num) {
@@ -50,9 +60,9 @@ function pad(num) {
 }
 
 setInterval(updateClock, 1000);
-updateClock(); // initial run
+updateClock();
 
-// === Theme Toggle ===
+// === THEME TOGGLE ===
 function applyTheme(theme) {
   document.body.classList.toggle("light-theme", theme === "light");
   localStorage.setItem("theme", theme);
@@ -67,9 +77,29 @@ toggleButton.addEventListener("click", () => {
   applyTheme(newTheme);
 });
 
-// === Timezone Change Handler ===
+// === TIMEZONE SELECT ===
 timezoneSelect.addEventListener("change", (e) => {
   currentTimeZone = e.target.value;
   localStorage.setItem("timezone", currentTimeZone);
-  updateClock(); // immediate update
-}); 
+  updateClock();
+});
+
+// === ALARM FUNCTIONALITY ===
+setAlarmBtn.addEventListener("click", () => {
+  const time = alarmInput.value;
+  if (!time) {
+    alert("Please select a time for the alarm.");
+    return;
+  }
+  alarmTime = time;
+  localStorage.setItem("alarmTime", alarmTime);
+  alarmStatus.textContent = `Alarm set for ${alarmTime}`;
+});
+
+function triggerAlarm() {
+  alarmSound.play();
+  alert("⏰ Alarm Time!");
+  alarmTime = null;
+  localStorage.removeItem("alarmTime");
+  alarmStatus.textContent = "No alarm set.";
+} 
